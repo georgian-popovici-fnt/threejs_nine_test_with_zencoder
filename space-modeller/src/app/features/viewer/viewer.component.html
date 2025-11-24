@@ -1,0 +1,47 @@
+<div class="viewer-container">
+  <canvas #canvas aria-label="3D viewport"></canvas>
+
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <label class="file-input-label">
+        <input
+          type="file"
+          accept=".ifc"
+          (change)="onFileSelected($event)"
+          [disabled]="isLoading()"
+        />
+        <span class="button">
+          {{ isLoading() ? 'Loading...' : 'Load IFC' }}
+        </span>
+      </label>
+
+      <button
+        class="button"
+        (click)="onExportFragments()"
+        [disabled]="!currentFileName() || isLoading()"
+      >
+        Download .frag
+      </button>
+    </div>
+
+    <div class="toolbar-right">
+      @if (currentFileName()) {
+        <span class="file-name">{{ currentFileName() }}</span>
+      }
+    </div>
+  </div>
+
+  @if (loadingProgress()) {
+    <div class="progress-overlay">
+      <div class="progress-card">
+        <div class="progress-bar-container">
+          <div
+            class="progress-bar"
+            [style.width.%]="loadingProgress()!.percent"
+          ></div>
+        </div>
+        <p class="progress-text">{{ loadingProgress()!.message }}</p>
+      </div>
+    </div>
+  }
+</div>
