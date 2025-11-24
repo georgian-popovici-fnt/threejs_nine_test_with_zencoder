@@ -22,8 +22,8 @@ export interface ViewerConfig {
 
 export const DEFAULT_VIEWER_CONFIG: ViewerConfig = {
   wasm: {
-    path: '/assets/wasm/',
-    useCdn: false,
+    path: 'https://unpkg.com/web-ifc@0.0.66/',
+    useCdn: true,
   },
   camera: {
     target: [0, 0, 0],

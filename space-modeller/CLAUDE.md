@@ -66,6 +66,48 @@ ngZone.runOutsideAngular(() => this.animate());
 - Use FragmentsManager for IFC/geometry streaming.
 - Keep UI separate: @thatopen/ui web components live in Angular templates but don't share state directly—emit events or use a facade service.
 
+## IFC / WASM Configuration
+
+### Default Setup (CDN)
+- Currently configured to use CDN for web-ifc WASM files (quick development)
+- Path: `https://unpkg.com/web-ifc@0.0.66/`
+- No additional setup required
+
+### Local WASM Setup (Production)
+For production, use local WASM files:
+
+1. Copy WASM files to public directory:
+```bash
+mkdir -p public/assets/wasm
+cp node_modules/web-ifc/*.wasm public/assets/wasm/
+```
+
+2. Update configuration in `viewer-config.model.ts`:
+```typescript
+export const DEFAULT_VIEWER_CONFIG: ViewerConfig = {
+  wasm: {
+    path: '/assets/wasm/',
+    useCdn: false,
+  },
+  // ...
+};
+```
+
+3. Configure Angular to copy WASM files during build in `angular.json`:
+```json
+"assets": [
+  {
+    "glob": "**/*",
+    "input": "public"
+  },
+  {
+    "glob": "**/*.wasm",
+    "input": "node_modules/web-ifc",
+    "output": "/assets/wasm"
+  }
+]
+```
+
 ## Code smells to avoid
 - `any` types, especially in `.component.ts`.
 - Imperative DOM reads (`nativeElement.offsetWidth`) in logic; use ResizeObserver or Angular built-ins.
