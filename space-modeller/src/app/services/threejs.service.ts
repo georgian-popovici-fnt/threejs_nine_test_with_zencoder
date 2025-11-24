@@ -1,4 +1,4 @@
-import { Injectable, NgZone } from '@angular/core';
+import { Injectable } from '@angular/core';
 import * as THREE from 'three';
 import CameraControls from 'camera-controls';
 import { ViewerConfig } from '../shared/models/viewer-config.model';
@@ -17,7 +17,7 @@ export class ThreejsService {
   private animationFrameId: number | null = null;
   private clock = new THREE.Clock();
 
-  constructor(private ngZone: NgZone) {}
+
 
   initialize(canvas: HTMLCanvasElement, config: ViewerConfig): {
     renderer: THREE.WebGLRenderer;
@@ -103,9 +103,7 @@ export class ThreejsService {
       }
     };
 
-    this.ngZone.runOutsideAngular(() => {
-      animate();
-    });
+    animate();
   }
 
   onWindowResize(width: number, height: number): void {

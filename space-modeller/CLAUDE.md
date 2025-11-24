@@ -1,13 +1,20 @@
 # Zencoder Repo Instructions — space-modeller
 
 ## Tech stack (pin these assumptions)
-- Angular 18 with standalone components and OnPush change detection everywhere.
+- Angular 18 with standalone components, OnPush change detection, and **ZONELESS MODE** (Zone.js disabled).
 - TypeScript 5.5 (no any unless unavoidable).
 - RxJS 7.8; prefer pipeable operators and takeUntilDestroyed.
 - Three.js 0.180; use three/examples/jsm/* modules when needed.
-- That Open libs: @thatopen/components, @thatopen/components-front, @thatopen/fragments, @thatopen/ui.
+- web-ifc 0.0.73 for direct IFC file loading (WASM-based).
 - Testing: Jasmine + Karma (CLI defaults).
 - Formatting: Prettier (width 100, single quotes, Angular HTML parser).
+
+### Zoneless Architecture
+- **Zone.js is completely disabled** in this application (`angular.json` has empty polyfills array).
+- Uses `provideExperimentalZonelessChangeDetection()` in `app.config.ts`.
+- Required to avoid Zone.js Promise patching conflicts with web-ifc WASM initialization.
+- All change detection is manual using Signals and OnPush strategy - no `NgZone` needed.
+- All async operations that affect UI MUST update signals to trigger change detection.
 
 ## Project conventions
 
@@ -139,7 +146,7 @@ export class SceneComponent {
   constructor() {
     afterNextRender(() => {
       this.initThree();
-      this.ngZone.runOutsideAngular(() => this.animate());
+      this.animate();
     });
   }
 
@@ -161,6 +168,22 @@ export class SceneComponent {
     // dispose geometries, materials, etc.
   }
 }
+```
+
+## IFC Loading & WASM Configuration
+
+### web-ifc Integration
+- Uses `web-ifc@0.0.73` for direct IFC file parsing (WASM-based)
+- WASM files loaded from CDN by default: `https://unpkg.com/web-ifc@0.0.73/`
+- For production: copy WASM files to `src/assets/wasm/` and update `viewer-config.model.ts`
+- WASM initialization happens ONCE at viewer startup in `FragmentsService.initialize()`
+- **Never call `ifcApi.Init()` more than once** - causes callback corruption
+
+### Zoneless Requirement
+- **web-ifc requires zoneless mode** due to Zone.js Promise patching conflicts
+- Zone.js intercepts Promise callbacks which breaks web-ifc's internal WASM initialization
+- Running with Zone.js causes `callbacks.shift(...) is not a function` errors
+- Solution: Use Angular 18's experimental zoneless mode with `provideExperimentalZonelessChangeDetection()`
 ```
 
 When in doubt: ask for clarification rather than guess conventions. Keep PRs small and focused.

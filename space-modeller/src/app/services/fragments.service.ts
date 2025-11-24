@@ -18,31 +18,61 @@ export class FragmentsService {
   private currentModelGroup: THREE.Group | null = null;
   private currentModelData: Uint8Array | null = null;
   private currentFileName: string | null = null;
+  private isInitialized = false;
+  private isInitializing = false;
 
-  initialize(
+
+
+  async initialize(
     scene: THREE.Scene,
     camera: THREE.PerspectiveCamera,
     renderer: THREE.WebGLRenderer,
     config: ViewerConfig
-  ): void {
+  ): Promise<void> {
+    if (this.isInitializing) {
+      throw new Error('Initialization already in progress');
+    }
+
+    if (this.isInitialized) {
+      return;
+    }
+
+    this.isInitializing = true;
     this.scene = scene;
     this.camera = camera;
 
-    this.ifcApi = new WEBIFC.IfcAPI();
+    try {
+      this.ifcApi = new WEBIFC.IfcAPI();
 
-    const wasmPath = config.wasm.useCdn 
-      ? 'https://unpkg.com/web-ifc@0.0.66/'
-      : config.wasm.path;
+      const wasmPath = config.wasm.useCdn 
+        ? config.wasm.path
+        : config.wasm.path;
 
-    this.ifcApi.SetWasmPath(wasmPath, config.wasm.useCdn);
+      this.ifcApi.SetWasmPath(wasmPath);
+      await this.ifcApi.Init();
+      
+      this.isInitialized = true;
+      console.log('IFC API initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize IFC API:', error);
+      this.ifcApi = null;
+      throw error;
+    } finally {
+      this.isInitializing = false;
+    }
   }
 
   async loadIfcFile(
     file: File,
     onProgress?: (progress: LoadProgress) => void
   ): Promise<THREE.Group | null> {
-    if (!this.ifcApi || !this.scene) {
-      console.error('Fragments service not initialized');
+    if (this.isInitializing) {
+      console.error('Service is still initializing. Please wait.');
+      return null;
+    }
+
+    if (!this.ifcApi || !this.scene || !this.isInitialized) {
+      console.error('Fragments service not initialized. Please refresh the page.');
       return null;
     }
 
@@ -58,15 +88,6 @@ export class FragmentsService {
       const data = new Uint8Array(buffer);
       this.currentModelData = data;
       this.currentFileName = file.name;
-
-      if (onProgress) {
-        onProgress({
-          percent: 20,
-          message: 'Initializing IFC API...'
-        });
-      }
-
-      await this.ifcApi.Init();
 
       if (onProgress) {
         onProgress({
@@ -223,5 +244,7 @@ export class FragmentsService {
     this.camera = null;
     this.currentModelData = null;
     this.currentFileName = null;
+    this.isInitialized = false;
+    this.isInitializing = false;
   }
 }

@@ -33,6 +33,7 @@ export class ViewerComponent {
   protected readonly loadingProgress = signal<LoadProgress | null>(null);
   protected readonly currentFileName = signal<string | null>(null);
   protected readonly isLoading = signal(false);
+  protected readonly isViewerReady = signal(false);
 
   constructor() {
     afterNextRender(() => {
@@ -40,30 +41,36 @@ export class ViewerComponent {
     });
   }
 
-  private initViewer(): void {
-    const canvas = this.canvasRef().nativeElement;
+  private async initViewer(): Promise<void> {
+    try {
+      const canvas = this.canvasRef().nativeElement;
 
-    const { renderer, scene, camera, controls } = this.threejsService.initialize(
-      canvas,
-      this.config
-    );
+      const { renderer, scene, camera, controls } = this.threejsService.initialize(
+        canvas,
+        this.config
+      );
 
-    this.fragmentsService.initialize(scene, camera, renderer, this.config);
+      await this.fragmentsService.initialize(scene, camera, renderer, this.config);
 
-    if (this.config.display.showStats) {
-      this.initStats();
+      if (this.config.display.showStats) {
+        this.initStats();
+      }
+
+      controls.addEventListener('rest', () => {
+        this.fragmentsService.updateCulling();
+      });
+
+      this.threejsService.startRenderLoop(
+        () => this.stats?.begin(),
+        () => this.stats?.end()
+      );
+
+      this.setupResizeObserver(canvas);
+      this.isViewerReady.set(true);
+    } catch (error) {
+      console.error('Failed to initialize viewer:', error);
+      this.isViewerReady.set(false);
     }
-
-    controls.addEventListener('rest', () => {
-      this.fragmentsService.updateCulling();
-    });
-
-    this.threejsService.startRenderLoop(
-      () => this.stats?.begin(),
-      () => this.stats?.end()
-    );
-
-    this.setupResizeObserver(canvas);
   }
 
   private initStats(): void {
@@ -90,6 +97,12 @@ export class ViewerComponent {
     const file = input.files?.[0];
 
     if (!file) {
+      return;
+    }
+
+    if (!this.isViewerReady()) {
+      console.error('Viewer is not ready yet. Please wait for initialization to complete.');
+      input.value = '';
       return;
     }
 

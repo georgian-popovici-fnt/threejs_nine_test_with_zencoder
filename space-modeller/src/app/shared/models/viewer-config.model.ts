@@ -22,7 +22,7 @@ export interface ViewerConfig {
 
 export const DEFAULT_VIEWER_CONFIG: ViewerConfig = {
   wasm: {
-    path: 'https://unpkg.com/web-ifc@0.0.66/',
+    path: 'https://unpkg.com/web-ifc@0.0.73/',
     useCdn: true,
   },
   camera: {
@@ -42,4 +42,4 @@ export const DEFAULT_VIEWER_CONFIG: ViewerConfig = {
   },
 };
 
-export const CDN_WASM_PATH = 'https://unpkg.com/web-ifc@0.0.66/';
+export const CDN_WASM_PATH = 'https://unpkg.com/web-ifc@0.0.73/';
