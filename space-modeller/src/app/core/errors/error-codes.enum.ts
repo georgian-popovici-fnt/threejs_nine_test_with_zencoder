@@ -1,0 +1,24 @@
+export enum ErrorCode {
+  VIEWER_INIT_FAILED = 'VIEWER_INIT_FAILED',
+  IFC_LOAD_FAILED = 'IFC_LOAD_FAILED',
+  IFC_PARSE_FAILED = 'IFC_PARSE_FAILED',
+  WASM_LOAD_FAILED = 'WASM_LOAD_FAILED',
+  GEOMETRY_PROCESSING_FAILED = 'GEOMETRY_PROCESSING_FAILED',
+  INVALID_FILE_FORMAT = 'INVALID_FILE_FORMAT',
+  FILE_TOO_LARGE = 'FILE_TOO_LARGE',
+  MEMORY_LIMIT_EXCEEDED = 'MEMORY_LIMIT_EXCEEDED',
+  RENDERER_ERROR = 'RENDERER_ERROR',
+  CAMERA_ERROR = 'CAMERA_ERROR',
+  SCENE_ERROR = 'SCENE_ERROR',
+  NETWORK_ERROR = 'NETWORK_ERROR',
+  UNKNOWN_ERROR = 'UNKNOWN_ERROR',
+}
+
+export interface ErrorDetails {
+  code: ErrorCode;
+  message: string;
+  userMessage?: string;
+  recoverable: boolean;
+  context?: Record<string, unknown>;
+  originalError?: Error;
+}

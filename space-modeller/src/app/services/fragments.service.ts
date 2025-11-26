@@ -168,33 +168,75 @@ export class FragmentsService {
     for (let i = 0; i < flatMeshes.size(); i++) {
       const flatMesh = flatMeshes.get(i);
       
-      const placedGeometry = flatMesh.geometries.get(0);
-      if (!placedGeometry) continue;
-      
-      const geometry = this.ifcApi.GetGeometry(modelID, placedGeometry.geometryExpressID);
-      const verts = this.ifcApi.GetVertexArray(geometry.GetVertexData(), geometry.GetVertexDataSize());
-      const indices = this.ifcApi.GetIndexArray(geometry.GetIndexData(), geometry.GetIndexDataSize());
+      for (let j = 0; j < flatMesh.geometries.size(); j++) {
+        const placedGeometry = flatMesh.geometries.get(j);
+        if (!placedGeometry) continue;
+        
+        try {
+          const geometry = this.ifcApi.GetGeometry(modelID, placedGeometry.geometryExpressID);
+          const vertexData = geometry.GetVertexData();
+          const vertexDataSize = geometry.GetVertexDataSize();
+          const indexData = geometry.GetIndexData();
+          const indexDataSize = geometry.GetIndexDataSize();
+          
+          const verts = this.ifcApi.GetVertexArray(vertexData, vertexDataSize);
+          const indices = this.ifcApi.GetIndexArray(indexData, indexDataSize);
 
-      const bufferGeometry = new THREE.BufferGeometry();
-      bufferGeometry.setAttribute('position', new THREE.BufferAttribute(verts, 3));
-      bufferGeometry.setIndex(new THREE.BufferAttribute(indices, 1));
-      bufferGeometry.computeVertexNormals();
+          if (!verts || !indices || verts.length === 0 || indices.length === 0) {
+            geometry.delete();
+            continue;
+          }
 
-      const material = new THREE.MeshPhongMaterial({
-        color: new THREE.Color(0.7, 0.7, 0.7),
-        side: THREE.DoubleSide,
-      });
+          const positionAttribute = new THREE.Float32BufferAttribute(verts, 3);
+          const indexAttribute = new THREE.Uint32BufferAttribute(indices, 1);
 
-      const mesh = new THREE.Mesh(bufferGeometry, material);
-      
-      const matrix = new THREE.Matrix4();
-      const matrixArray = placedGeometry.flatTransformation;
-      matrix.fromArray(matrixArray);
-      mesh.applyMatrix4(matrix);
+          const bufferGeometry = new THREE.BufferGeometry();
+          bufferGeometry.setAttribute('position', positionAttribute);
+          bufferGeometry.setIndex(indexAttribute);
+          
+          bufferGeometry.computeVertexNormals();
+          bufferGeometry.computeBoundingBox();
+          bufferGeometry.computeBoundingSphere();
 
-      meshes.push(mesh);
+          const color = placedGeometry.color;
+          const r = Math.max(0, Math.min(1, color.x));
+          const g = Math.max(0, Math.min(1, color.y));
+          const b = Math.max(0, Math.min(1, color.z));
+          const a = Math.max(0, Math.min(1, color.w));
+          
+          const materialColor = new THREE.Color(r, g, b);
+          
+          const material = new THREE.MeshLambertMaterial({
+            color: materialColor,
+            side: THREE.DoubleSide,
+            transparent: a < 0.99,
+            opacity: a,
+            depthWrite: a >= 0.99,
+          });
+
+          const mesh = new THREE.Mesh(bufferGeometry, material);
+          mesh.userData['ifcExpressID'] = flatMesh.expressID;
+          mesh.userData['geometryExpressID'] = placedGeometry.geometryExpressID;
+          
+          const matrix = new THREE.Matrix4();
+          matrix.fromArray(placedGeometry.flatTransformation);
+          mesh.applyMatrix4(matrix);
+
+          mesh.frustumCulled = true;
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+
+          meshes.push(mesh);
+          
+          geometry.delete();
+        } catch (error) {
+          console.warn(`Error processing geometry ${j} of mesh ${i}:`, error);
+          continue;
+        }
+      }
     }
 
+    console.log(`Generated ${meshes.length} meshes from IFC model`);
     return meshes;
   }
 
